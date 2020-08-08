@@ -1,0 +1,15 @@
+version: "3.4"
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    working_dir: /usr/src/app
+    environment:
+      - SSH_AUTH_SOCK=/tmp/ssh_auth.sock
+    extra_hosts:
+      - dockerhost:${DOCKERHOST:-255.255.255.254}
+    volumes:
+      - .:/usr/src/app
+      - $SSH_AUTH_SOCK:/tmp/ssh_auth.sock

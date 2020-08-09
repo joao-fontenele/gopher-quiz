@@ -1,40 +1,50 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	inputPath := flag.String("input", "sample.csv", "Quiz csv file path")
+	timeLimit := flag.Int("limit", 30, "time limit for answering all questions, in seconds")
 	flag.Parse()
 
 	lines, err := readCsv(*inputPath)
 	check(err)
 
 	problems := parseLines(lines)
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
 
 	correctAnwers := 0
 
-	keyboardReader := bufio.NewReader(os.Stdin)
 	for i, problem := range problems {
 		fmt.Printf("Question %d:\n  %s?\n", i+1, problem.question)
 
-		answer, err := keyboardReader.ReadString('\n')
-		check(err)
+		answerCh := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanf("%s", &answer)
+			answerCh <- answer
+		}()
 
-		if strings.TrimSpace(answer) == problem.answer {
-			correctAnwers += 1
-			fmt.Println("Correct!")
-		} else {
-			fmt.Println("Whoops!")
+		select {
+		case <-timer.C:
+			fmt.Printf("\nYou got %d correct answers out of %d\n", correctAnwers, len(lines))
+			return
+		case answer := <-answerCh:
+			if strings.TrimSpace(answer) == problem.answer {
+				correctAnwers += 1
+				fmt.Println("Correct!")
+			} else {
+				fmt.Println("Whoops!")
+			}
 		}
 	}
-
 	fmt.Printf("\nYou got %d correct answers out of %d\n", correctAnwers, len(lines))
 }
 
